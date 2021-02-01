@@ -1,0 +1,172 @@
+﻿@{
+    ViewData["Title"] = "Úvod";
+}
+
+<div>
+    <h1>Vítejte!</h1>
+    <p>
+        Toto je moje řešení testovacího zadání pro Prague Labs. Jedná se o stránku umožňující správu faktur.
+    </p>
+    <p>
+        Přejít na <a asp-controller="Invoice" asp-action="List">seznam faktur</a>!
+    </p>
+
+    <h2 class="border-bottom pb-1 mb-3">Fíčury</h2>
+
+    <h3>Ukládání faktur</h3>
+    <p>
+        Ukládání dat je zatím řešeno in-memory pomocí třídy <code>MockInvoiceManager</code>, která
+        je zaregistrována jako služba do dependency injection. Pro napojení na externí databázi by mělo stačit jí
+        nahradit jinou třídou implementující stejné rozhraní (<code>IInvoiceManager</code>).
+    </p>
+    
+    <h3>Autorizace pomocí klíče</h3>
+    <p>       
+        Faktury může zobrazovat každý, kdo si tuto stránku načte, ale přidávat/upravovat/odebírat je může
+        pouze ten, kdo má klíč k api. Klíč k api je uveden v konfiguraci (appsettings.json) v hodnotě <code>apiKey</code>.
+        Klíč k api lze serveru předat buďto v http headeru <code>Authorization</code>, nebo
+        v sušence <code>@(TestInvoices.Managers.MockApiAuthenticator.API_COOKIE)</code>. V obou případech je klíč uveden
+        v plaintextu, jelikož se nepředpokládá, že mezi hackery bude o tuto stránku příliš velký zájem.
+        Předpokládá se, že pokud upravujete faktury skrze api, použijete <code>Authorization</code>, ale pokud je upravujete skrze prohlížeč,
+        použijete sušenku - na této webové stránce totiž můžete změnit její hodnotu pomocí "Nastavit klíč k api".
+    </p>
+    <p>
+        O tuto autorizaci se stará třída <code>MockApiAuthenticator</code> a opět ji lze nahradit jinou
+        třídou implementující rozhraní <code>IApiAuthenticator</code>.
+    </p>
+
+    <h3>Zobrazení seznamu faktur v prohlížeči</h3>
+    <p>
+        V prohlížeči lze zobrazit seznam faktur v úhledné tabulce kliknutím na záložku "Seznam faktur".
+    </p>
+
+    <h3>Přidávání / odstraňování faktur přes prohlížeč</h3>
+    <p>
+        Přidání faktury je možné na stránce "Seznam faktur" kliknutím na odkaz "Přidat". Tím se zobrazí
+        formulář, kde lze zadat detaily nové faktury.
+    </p>
+    <p>
+        Faktury lze také odstranit kliknutím na "Odstranit" na řádku příslušné faktury v seznamu faktur.
+    </p>
+
+    <h3>Přidávání / odstraňování položek přes prohlížeč</h3>
+    <p>
+        Do faktury lze přidat položku zobrazením detailu faktury a kliknutím na odkaz "Přidat". Opět
+        následuje formulář, kde lze tentokrát zadat detaily nové položky.
+    </p>
+    <p>
+        Položky lze také odstranit kliknutím na "Odstranit" na řádku příslušné položky v detailu faktury.
+    </p>
+
+    <h3>Editace faktur přes prohlížeč</h3>
+    <p>
+        Vlastnosti faktur (tzn. podrobnosti dodavatele, odběratele a položek) lze editovat při zobrazení detailu faktury a kliknutím na pole,
+        které chcete změnit. Prohlížeč se zeptá na novou hodnotu a poté pošle přes Ajax request do api
+        <code>@(Url.Action("Patch", "Api"))</code>. Když je operace úspěšná, stránka se znovu načte s aktualizovanými hodnotami.
+        Jestliže je neúspěšná, prohlížeč zobrazí vyskakovací okno s chybovou hláškou.
+    </p>
+
+    <h3>Získání seznamu faktur přes api</h3>
+    <p>
+        Aplikace má api, přes nějž lze získat seznam faktur. Cesta k tomuto api je <code>/Api/List</code>.
+    </p>
+    <p>
+        Odesláním GET requestu na tuto adresu získáte seznam všech faktur. Lze ale přidat parametr <code>paid</code>
+        pro filtrování faktur dle toho, jestli byly zaplaceny. Tzn. <code>/Api/List/paid=true</code> vrátí seznam zaplacených
+        faktur, <code>/Api/List/paid=false</code> vrátí seznam nezaplacených faktur.
+    </p>
+
+    <h3>Označení zaplacené faktury přes api</h3>
+    <p>
+        Nezaplacenou fakturu lze označit jako zaplacenou posláním GET requestu do <code>/Api/Pay/[id faktury]</code>.
+    </p>
+
+    <h3>Upravení faktury přes api</h3>
+    <p>
+        Faktury lze upravovat - tj. měnit jejich vlastnosti, měnit vlastnosti položek, přidávat / odebírat položky,
+        přes api na adrese <code>/Api/Patch/[id faktury]</code> pomocí PATCH requestu.
+    </p>
+    <p>
+        Tělo tohoto requestu má json formát a obsahuje 4 volitelné parametry:
+<pre><code>{
+    "patch": { ...upravení vlastností faktury... } ,
+    "addItems": [ ...přidání položek... ],
+    "removeItems": [ ...odstranění položek... ],
+    "patchItems": [ ...upravení položek... ]
+}</code></pre>
+    </p>
+    <h4>patch</h4>
+    <p>
+        Pomocí hodnoty <code>patch</code> lze upravit hodnoty vázané na fakturu, jako např. detaily dodavatele, detaily odběratele,
+        datum splatnosti apod. Tato hodnota obsahuje json objekt, jehož názvy vlastností odpovídají názvům vlastností C#
+        třídy <code>Invoice</code>. Po odeslání requestu jsou jednotlivé vlastnosti v jsonu spárovány s vlastnostmi
+        C# třídy podle názvu (case-insensitive) a převedeny z jsonu do určité instance třídy <code>Invoice</code>, načež
+        je updatována databáze.
+    </p>
+    <p>
+        Příklad použití (změna názvu dodavatele a datumu splatnosti):
+<pre><code>{
+    "patch": {
+        "seller": {
+            "name": "Ferda Mravenec"
+        },
+        "dueDate": "2050-01-01"
+    }
+}</code></pre>
+    </p>
+    <h4>addItems</h4>
+    <p>
+        Pomocí hodnoty <code>addItems</code> lze přidat libovolné množství položek do faktury. Jedná se o seznam objektů.
+        Každý z objektů musí určit 3 vlastnosti: 
+        <ul>
+            <li><code>description</code> - popis položky</li>
+            <li><code>pricePerOne</code> - cena za kus</li>
+            <li><code>count</code> - počet položek</li>
+        </ul>
+    </p>
+    <p>
+        Příklad použití - přidání položky:
+<pre><code>{
+    "addItems": [
+        {
+            "description": "Papír",
+            "pricePerOne": 99.90,
+            "count": 10
+        }
+    ]
+}</code></pre>
+    </p>
+    <h4>removeItems</h4>
+    <p>
+        Pomocí hodnoty <code>removeItems</code> lze odebrat položky. Jedná se o seznam čísel, která odpovídají
+        idům položek, které chcete odstranit.
+    </p>
+    <p>
+        Příklad použití - odstranění položek s idem 0 a 2:
+<pre><code>{
+    "removeItems": [0, 2]
+}</code></pre>
+    </p>
+    <h4>patchItems</h4>
+    <p>
+        <code>patchItems</code> umožňuje upravovat položky na faktuře. Jedná se o seznam objektů, z nichž
+        každý musí obsahovat id (aby ho šlo spárovat s danou položkou v databázi) a libovolné množství upravovaných
+        vlastností, které fungují obdobně k <code>patch</code>, akorát ne na celou fakturu, nýbrž na konkrétní položku.
+    </p>
+    <p>
+        Příklad použití - změna ceny a počtu položky s idem 1 a změna popisu položky s idem 5:
+<pre><code>{
+    "patchItems": [
+        {
+            "id": 1,
+            "pricePerOne": 50,
+            "count": 5
+        },
+        {
+            "id": 5,
+            "description": "Krabice"
+        }
+    ]
+}</code></pre>
+    </p>
+</div>

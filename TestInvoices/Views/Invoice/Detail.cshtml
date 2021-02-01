@@ -1,0 +1,233 @@
+﻿@using TestInvoices.DbModels
+@using TestInvoices.Utils
+@model Invoice
+
+@{
+    ViewData["Title"] = "Detail faktury";
+    var sum = Model.Items.Sum(item => item.Count * item.PricePerOne);
+}
+
+@functions{
+    /// <summary>
+    /// vytiskne tabulku pro určitou firmu
+    /// </summary>
+    /// <param name="company"></param>
+    async Task CompanyDetail(Company company)
+    {
+        <table class="company-detail-table">
+            <tr>
+                <th>
+                    <label asp-for="Seller.Name"></label>
+                </th>
+                <td class="editable" data-prop="name" data-type="string">@company.Name</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.Phone"></label>
+                </th>
+                <td class="editable" data-prop="phone" data-type="string">@StringUtils.NumberSeparate(company.Phone, 3)</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.Address"></label>
+                </th>
+                <td class="editable" data-prop="address" data-type="string">@company.Address</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.City"></label>
+                </th>
+                <td class="editable" data-prop="city" data-type="string">@company.City</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.PSČ"></label>
+                </th>
+                <td class="editable" data-prop="psč" data-type="string">@StringUtils.NumberSeparate(company.PSČ, 3)</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.IČO"></label>
+                </th>
+                <td class="editable" data-prop="ičo" data-type="string">@company.IČO</td>
+            </tr>
+            <tr>
+                <th>
+                    <label asp-for="Seller.DIČ"></label>
+                </th>
+                <td class="editable" data-prop="dič" data-type="string">@company.DIČ</td>
+            </tr>
+        </table>
+    }
+}
+
+@section Scripts
+{
+    <script type="text/javascript">
+        function sendAjaxPatch(payload) {
+            $.ajax({
+                url: "@Url.Action("Patch", "Api", new { id = Model.Id })",
+                method: "PATCH",
+                data: JSON.stringify(payload),
+                contentType: "application/json",
+                xhrFields: { withCredentials: true } //aby se posílaly sušenky
+            }).done(() => {
+                location.reload();
+            }).fail(xhr => {
+                if (xhr.status == 401) { //unauthorized
+                    alert("Špatný klíč!");
+                    return;
+                }
+
+                let json = JSON.parse(xhr.responseText);
+                alert(json["detail"]);
+            });
+        }
+
+        function getNewValue(jqElement) {
+            let currVal = jqElement.data("curr");
+            if (currVal === undefined)
+                currVal = jqElement.html();
+
+            let dataType = jqElement.data("type");
+            if (dataType === undefined)
+                dataType = "string";
+
+            let newValue = prompt("Nová hodnota", currVal);
+
+            if (dataType == "number")
+                newValue = Number(newValue.replace(/\,/g, "."));
+
+            return newValue;
+        }
+
+        function isValid(val) {
+            if (val === undefined || (typeof val == "number" && isNaN(val)))
+                return false;
+            return true;
+        }
+
+        $(".company-detail-table .editable").click(function () {
+            //editace faktur přes api
+
+            let me = $(this);
+            let newValue = getNewValue(me);
+            if (!isValid(newValue)) {
+                alert("Nesprávný formát");
+                return;
+            }
+
+            let payload = {
+                patch: {
+                    [me.parents("div.col").first().data("side")]: {
+                        [me.data("prop")]: newValue
+                    }
+                }
+            };
+
+            sendAjaxPatch(payload);
+        });
+
+        $("#itemList .editable").click(function () {
+            //editace položek faktur přes api
+
+            let me = $(this);
+            let newValue = getNewValue(me);
+            if (!isValid(newValue)) {
+                alert("Nesprávný formát");
+                return;
+            }
+
+            let payload = {
+                patchItems: [
+                    {
+                        "id": me.parents("tr").first().data("id"),
+                        [me.data("prop")]: newValue
+                    }
+                ]
+            };
+
+            sendAjaxPatch(payload);
+        });
+    </script>
+}
+
+<h1>Detail faktury</h1>
+
+<div class="container p-3 border-top">
+    <div class="row p-1">
+        <div class="col-3">Datum vystavení:</div>
+        <div class="col">@Model.DateOfIssue.ToShortDateString()</div>
+    </div>
+    <div class="row p-1">
+        <div class="col-3">Datum splatnosti:</div>
+        <div class="col">@Model.DueDate.ToShortDateString()</div>
+    </div>
+    <div class="row p-1">
+        <div class="col-3">Celková částka:</div>
+        <div class="col">@sum Kč</div>
+    </div>
+    <div class="row p-1">
+        <div class="col-3">Zaplaceno:</div>
+        <div class="col font-weight-bold" style="color:@(Model.Paid ? "lime" : "red")">@(Model.Paid ? "Ano" : "Ne")</div>
+    </div>
+</div>
+
+<div class="container p-3 border-top">
+    <div class="row align-items-start">
+        <div class="col" data-side="seller">
+            <h3>Dodavatel</h3>
+            @{ await CompanyDetail(Model.Seller); }
+        </div>
+        <div class="col" data-side="buyer">
+            <h3>Odběratel</h3>
+            @{ await CompanyDetail(Model.Buyer); }
+        </div>
+    </div>
+</div>
+
+<table class="table" id="itemList">
+    <tr>
+        <th>Popis</th>
+        <th>Počet</th>
+        <th>Cena za kus</th>
+        <th>Cena celkem</th>
+        <th>
+            @if (!Model.Paid)
+            {
+                <a asp-controller="Invoice" asp-action="AddItem" asp-route-id="@Model.Id">Přidat</a>
+            }
+        </th>
+    </tr>
+    @foreach (var item in Model.Items)
+    {
+        <tr data-id="@item.Id">
+            <td>
+                <span class="editable" data-prop="description" data-type="string">@item.Description</span>
+            </td>
+            <td>
+                <span class="editable" data-prop="count" data-type="number" data-curr="@item.Count">@item.Count ks</span>
+            </td>
+            <td>
+                <span class="editable" data-prop="pricePerOne" data-type="number" data-curr="@item.PricePerOne">@item.PricePerOne Kč</span>
+            </td>
+            <td>@(item.Count * item.PricePerOne) Kč</td>
+            <td>
+                <a asp-controller="Invoice" asp-action="DeleteItem" asp-route-id="@Model.Id" asp-route-itemId="@item.Id"
+                   onclick="return confirm('Opravdu chcete odstranit tuto položku?')">
+                    Odstranit
+                </a>
+            </td>
+        </tr>
+    }
+    <tr>
+        <td> </td>
+        <td> </td>
+        <td> </td>
+        <td class="font-weight-bold">
+            @sum Kč
+        </td>
+        <td> </td>
+    </tr>
+</table>
+

@@ -1,0 +1,44 @@
+﻿@using TestInvoices.DbModels
+@model IEnumerable<Invoice>
+@{
+    ViewData["Title"] = "List";
+}
+
+<h1>Seznam faktur</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Dodavatel</th>
+            <th>Odběratel</th>
+            <th>Celková částka</th>
+            <th>Zaplaceno</th>
+            <th>
+                <a asp-controller="Invoice" asp-action="AddInvoice">Přidat</a>
+            </th>
+            <th> </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var invoice in Model)
+        {
+            <tr>
+                <td>@invoice.Seller.Name</td>
+                <td>@invoice.Buyer.Name</td>
+                <td>@invoice.Items.Sum(item => item.Count * item.PricePerOne) Kč</td>
+                <td style="font-weight:bold;color:@(invoice.Paid ? "lime" : "red")">
+                    @(invoice.Paid ? "Ano" : "Ne")
+                </td>
+                <td>
+                    <a asp-controller="Invoice" asp-action="DeleteInvoice" asp-route-id="@invoice.Id"
+                       onclick="return confirm('Opravdu chcete odstranit tuto fakturu?')">
+                        Odstranit
+                    </a>
+                </td>
+                <td>
+                    <a asp-controller="Invoice" asp-action="Detail" asp-route-id="@invoice.Id">Detail</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

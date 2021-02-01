@@ -1,0 +1,120 @@
+﻿@using TestInvoices.DbModels
+@model Invoice
+@{
+    ViewData["Title"] = "AddInvoice";
+
+    if (Model.Seller == null) Model.Seller = new Company();
+    if (Model.Buyer == null) Model.Buyer = new Company();
+}
+
+<h1>Přidat fakturu</h1>
+
+<div asp-validation-summary="All"></div>
+
+<form method="post">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Pole</th>
+                <th scope="col">Dodavatel</th>
+                <th scope="col">Odběratel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row" class="align-content-center">
+                    <label asp-for="Seller.Name"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.Name" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.Name" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.Phone"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.Phone" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.Phone" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.Address"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.Address" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.Address" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.City"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.City" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.City" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.PSČ"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.PSČ" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.PSČ" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.IČO"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.IČO" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.IČO" class="form-control form-control-sm" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label asp-for="Seller.DIČ"></label>
+                </th>
+                <td>
+                    <input asp-for="Seller.DIČ" class="form-control form-control-sm" />
+                </td>
+                <td>
+                    <input asp-for="Buyer.DIČ" class="form-control form-control-sm" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="form-group row">
+        <label asp-for="DateOfIssue" class="col-sm-2 col-form-label"></label>
+        <div class="col-sm-10">
+            <input asp-for="DateOfIssue" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+        </div>
+    </div>
+
+    <div class="form-group row">
+        <label asp-for="DueDate" class="col-sm-2 col-form-label"></label>
+        <div class="col-sm-10">
+            <input asp-for="DueDate" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Potvrdit</button>
+</form>
+

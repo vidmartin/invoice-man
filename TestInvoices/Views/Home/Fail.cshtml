@@ -1,0 +1,17 @@
+﻿@model string
+@{
+    Layout = null;
+}
+
+<html>
+    <head>
+        <title>Fail</title>
+        <script type="text/javascript">
+            alert("@{ WriteLiteral(Model); }");
+            window.history.back();
+        </script>
+    </head>
+    <body>
+
+    </body>
+</html>
